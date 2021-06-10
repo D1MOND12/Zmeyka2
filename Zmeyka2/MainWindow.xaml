@@ -5,6 +5,6 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Zmeyka2"
         mc:Ignorable="d"
-        Title="Zmeyka" Height="500" Width="800">
+        Title="Zmeyka" Height="500" Width="800" KeyUp="KeyWasReleased">
     <Canvas x:Name="Game"/>
 </Window>
