@@ -37,8 +37,13 @@ namespace Zmeyka2
 
             for (int i = 0; i < numberOfRows; i++)
             {
-                Lint line = new Line();
+                Line line = new Line();
                 line.Stroke = Brushes.Black;
+                line.X1 = i * _elementSize;
+                line.Y1 = 0;
+                line.X1 = i * _elementSize;
+                line.Y2 = Height;
+                Game.Children.Add(line);
 
             }
         }
