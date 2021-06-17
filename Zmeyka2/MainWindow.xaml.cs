@@ -13,6 +13,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using System.Linq;
+
 using Zmeyka2.Элементы;
 
 
@@ -24,17 +26,20 @@ namespace Zmeyka2
     public partial class MainWindow : Window
     {
         int _elementSize = 20;
-        private int _numberOfRows;
-        private int _numberOfColumns;
+        int _numberOfRows;
+        int _numberOfColumns;
+
         DispatcherTimer _gameTimer;
-        List<Snake> _apples;
-        List<Apple> _gameEnetities;
+        List<Snake> _snake;
+        List<Apple> _apples;
         private Random _randoTron;
 
         Direction _currentDirection;
         private double _gameWidth;
         private double _gameHeight;
         private long _elaspedTricks;
+        private Snake _tailBackup;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -44,27 +49,29 @@ namespace Zmeyka2
             DrawGame();
             InitializeSnake();
             DrawSnake();
+            _elaspedTricks++;
         }
 
 
         private void InitializeSnake()
         {
-            _apples = new List<Snake>();
-            _apples.Add(new Snake(_elementSize)
+            _snake = new List<Snake>();
+            _snake.Add(new Snake(_elementSize)
             {
                 X = _numberOfColumns / 2 * _elementSize,
-                Y = _numberOfColumns / 2 * _elementSize,
+                Y = _numberOfRows / 2 * _elementSize,
                 IsHead = true
             });
-            _currentDirection = Direction.Left;
+
+            _currentDirection = Direction.Right;
         }
 
         private void DrawGame()
         {
             _gameWidth = Width;
             _gameHeight = Height;
-            _numberOfColumns = (int) _gameWidth / _elementSize;
-            _numberOfRows = (int) _gameHeight / _elementSize;
+            _numberOfColumns = (int)_gameWidth / _elementSize;
+            _numberOfRows = (int)_gameHeight / _elementSize;
 
             for (int i = 0; i < _numberOfRows; i++)
             {
@@ -107,7 +114,7 @@ namespace Zmeyka2
 
         private void DrawSnake()
         {
-            foreach (var snake in _apples)
+            foreach (var snake in _snake)
             {
                 if (!Game.Children.Contains(snake.UIElement))
                     Game.Children.Add(snake.UIElement);
@@ -130,7 +137,7 @@ namespace Zmeyka2
 
         private void CreateApple()
         {
-            if (_elaspedTricks / 13 == 0)
+            if (_elaspedTricks / 2 == 0)
             {
                 _apples.Add(new Apple(_elementSize) {
                     X = _randoTron.Next(0, _numberOfColumns) * _elementSize,
@@ -146,7 +153,7 @@ namespace Zmeyka2
             CheckCollisionWithWorldItems();
         }
 
-        private void CheckCollisionWithWorldItems()
+        private void CheckCollisionWithWorldBounds()
         {
             Snake snakeHead = GetSnakeHead();
 
@@ -156,20 +163,45 @@ namespace Zmeyka2
             }
         }
 
+        private void CheckCollisionWithWorldItems()
+        {
+            Snake head = _snake[0];
+            Apple collidedWithSnake = null;
+            foreach (var apple in _apples)
+            {
+                if (head.X == apple.X && head.Y == apple.Y)
+                {
+                    collidedWithSnake = apple;
+                    break;
+                }
+            }
+            if (collidedWithSnake != null)
+            {
+                _apples.Remove(collidedWithSnake);
+                Game.Children.Remove(collidedWithSnake.UIElement);
+                GrowSnake();
+            }
+        }
+
+        private void GrowSnake()
+        {
+            _snake.Add(new Snake(_elementSize) {X = _tailBackup.X, Y = _tailBackup.Y });
+        }
+
         private void CheckCollisionWithSelf()
         {
             Snake snakeHead = GetSnakeHead();
             if (snakeHead != null)
             {
-                foreach (var snake in _apples)
+                foreach (var snake in _snake)
                 {
                     if (!snake.IsHead)
                     {
                         if (snake.X == snakeHead.X && snake.Y == snakeHead.Y)
                         {
                             MessageBox.Show("Игра окончена!");
-                            break;
                         }
+                        break;
                     }
                 }
             }
@@ -178,7 +210,7 @@ namespace Zmeyka2
         private Snake GetSnakeHead()
         {
             Snake snakeHead = null;
-            foreach (var snake in _apples)
+            foreach (var snake in _snake)
             {
                 if (snake.IsHead)
                 {
@@ -188,34 +220,45 @@ namespace Zmeyka2
             }
             return snakeHead;
         }
-        private void CheckCollisionWithWorldBounds()
-        {
 
-        }
 
         private void MoveSnake()
         {
-            foreach (var snake in _apples)
+            Snake head = _snake[0];
+            Snake tail = _snake[_snake.Count - 1];
+            _tailBackup = tail;
+            _tailBackup = new Snake(_elementSize)
             {
-                switch (_currentDirection)
-                {
-                    case Direction.Right:
-                        snake.X += _elementSize;
-                        break;
-                    case Direction.Left:
-                        snake.X -= _elementSize;
-                        break;
-                    case Direction.Up:
-                        snake.Y -= _elementSize;
-                        break;
-                    case Direction.Down:
-                        snake.Y += _elementSize;
-                        break;
-                    default:
-                        break;
+                X = tail.X,
+                Y = tail.Y
+            };
 
-                }
+            head.IsHead = false;
+            tail.IsHead = true;
+            tail.X = head.X;
+            tail.Y = head.Y;
+            switch (_currentDirection)
+            {
+                case Direction.Right:
+                    tail.X += _elementSize;
+                    break;
+                case Direction.Left:
+                    tail.X -= _elementSize;
+                    break;
+                case Direction.Up:
+                    tail.Y -= _elementSize;
+                    break;
+                case Direction.Down:
+                    tail.Y += _elementSize;
+                    break;
+                default:
+                    break;
+
             }
+
+            _snake.RemoveAt(_snake.Count - 1);
+            _snake.Insert(0, tail);
+
         }
 
         private void KeyWasReleased(object sender, KeyEventArgs e)
