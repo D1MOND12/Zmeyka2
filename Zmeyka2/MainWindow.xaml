@@ -6,5 +6,21 @@
         xmlns:local="clr-namespace:Zmeyka2"
         mc:Ignorable="d"
         Title="Zmeyka" Height="500" Width="800" KeyUp="KeyWasReleased">
-    <Canvas x:Name="Game"/>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="1*"/>
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" Margin="1" Content="Start"/>
+            <Button Grid.Column="1" Margin="1" Content="Restart"/>
+            <Button Grid.Column="2" Margin="1" Content="Options"/>
+        </Grid>
+        <Canvas x:Name="Game" Grid.Row="1"/>
+    </Grid>
 </Window>

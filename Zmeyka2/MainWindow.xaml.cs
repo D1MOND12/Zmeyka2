@@ -26,30 +26,58 @@ namespace Zmeyka2
     public partial class MainWindow : Window
     {
         int _elementSize = 20;
+        double _gameWidth;
+        double _gameHeight;
         int _numberOfRows;
         int _numberOfColumns;
 
+        Apple _apple;
+        Random _randoTron;
         DispatcherTimer _gameTimer;
         List<Snake> _snake;
-        List<Apple> _apples;
-        private Random _randoTron;
+        Snake _tailBackup;
 
         Direction _currentDirection;
-        private double _gameWidth;
-        private double _gameHeight;
-        private long _elaspedTricks;
-        private Snake _tailBackup;
 
         public MainWindow()
         {
             InitializeComponent();
+        }
+
+        protected override void OnContentRendered(EventArgs e)
+        {
+            InitializeGame();
+            base.OnContentRendered(e);
+        }
+
+        void InitializeGame()
+        {
             _randoTron = new Random(DateTime.Now.Millisecond / DateTime.Now.Second);
-            _apples = new List<Apple>();
             InistalizeTimer();
             DrawGame();
             InitializeSnake();
             DrawSnake();
-            _elaspedTricks++;
+        }
+
+        void ResetGame()
+        {
+            if (_gameTimer != null)
+            {
+                _gameTimer.Stop();
+                _gameTimer.Tick -= MainGameLoop;
+                _gameTimer = null;
+            }
+            if (Game != null)
+            {
+                Game.Children.Clear();
+            }
+            _apple = null;
+            if (_snake != null)
+            {
+                _snake.Clear();
+                _snake = null;
+            }
+            _tailBackup = null;
         }
 
 
@@ -68,8 +96,8 @@ namespace Zmeyka2
 
         private void DrawGame()
         {
-            _gameWidth = Width;
-            _gameHeight = Height;
+            _gameWidth = Game.ActualWidth;
+            _gameHeight = Game.ActualHeight;
             _numberOfColumns = (int)_gameWidth / _elementSize;
             _numberOfRows = (int)_gameHeight / _elementSize;
 
@@ -95,13 +123,19 @@ namespace Zmeyka2
             }
         }
 
-        public void InistalizeTimer()
+        private void InistalizeTimer()
         {
             _gameTimer = new DispatcherTimer();
-            _gameTimer.Interval = TimeSpan.FromSeconds(0.2);
+            _gameTimer.Interval = TimeSpan.FromSeconds(0.5);
             _gameTimer.Tick += MainGameLoop;
             _gameTimer.Start();
         }
+
+        private void MakeGameFaster()
+        {
+            _gameTimer.Interval = _gameTimer.Interval - TimeSpan.FromSeconds(0.1);
+        }
+
 
         private void MainGameLoop(object sender, EventArgs e)
         {
@@ -125,25 +159,22 @@ namespace Zmeyka2
         }
         private void DrawApples()
         {
-            foreach (var apple in _apples)
-            {
-                if (!Game.Children.Contains(apple.UIElement))
-                    Game.Children.Add(apple.UIElement);
-
-                Canvas.SetLeft(apple.UIElement, apple.X);
-                Canvas.SetTop(apple.UIElement, apple.Y);
-            }
+            if (_apple == null)
+                return;
+            if (!Game.Children.Contains(_apple.UIElement))
+                Game.Children.Add(_apple.UIElement);
+            Canvas.SetLeft(_apple.UIElement, _apple.X);
+            Canvas.SetTop(_apple.UIElement, _apple.Y);
         }
 
         private void CreateApple()
         {
-            if (_elaspedTricks / 2 == 0)
-            {
-                _apples.Add(new Apple(_elementSize) {
+            if (_apple != null)
+                return;
+                _apple = new Apple(_elementSize) {
                     X = _randoTron.Next(0, _numberOfColumns) * _elementSize,
                     Y = _randoTron.Next(0, _numberOfRows) * _elementSize
-                });
-            }
+                };
         }
 
         private void CheckCollision()
@@ -159,27 +190,23 @@ namespace Zmeyka2
 
             if (snakeHead.X > _gameWidth - _elementSize || snakeHead.X < 0 || snakeHead.Y < 0 || snakeHead.Y > _gameHeight - _elementSize)
             {
-                MessageBox.Show("Игра окончена!");
+                MessageBox.Show("Игра окончена! Заного?");
+                ResetGame();
+                InitializeGame();
             }
         }
 
         private void CheckCollisionWithWorldItems()
         {
+            if (_apple == null)
+                return;
             Snake head = _snake[0];
-            Apple collidedWithSnake = null;
-            foreach (var apple in _apples)
+            if (head.X == _apple.X && head.Y == _apple.Y)
             {
-                if (head.X == apple.X && head.Y == apple.Y)
-                {
-                    collidedWithSnake = apple;
-                    break;
-                }
-            }
-            if (collidedWithSnake != null)
-            {
-                _apples.Remove(collidedWithSnake);
-                Game.Children.Remove(collidedWithSnake.UIElement);
+                Game.Children.Remove(_apple.UIElement);
                 GrowSnake();
+                MakeGameFaster();
+                _apple = null;
             }
         }
 
@@ -191,6 +218,7 @@ namespace Zmeyka2
         private void CheckCollisionWithSelf()
         {
             Snake snakeHead = GetSnakeHead();
+            bool hadCollision = false;
             if (snakeHead != null)
             {
                 foreach (var snake in _snake)
@@ -199,11 +227,17 @@ namespace Zmeyka2
                     {
                         if (snake.X == snakeHead.X && snake.Y == snakeHead.Y)
                         {
-                            MessageBox.Show("Игра окончена!");
+                            hadCollision = true;
+                            break;
                         }
-                        break;
                     }
                 }
+            }
+            if (hadCollision)
+            {
+                MessageBox.Show("Игра окончена!");
+                ResetGame();
+                InitializeGame();
             }
         }
 
@@ -266,16 +300,20 @@ namespace Zmeyka2
             switch (e.Key)
             {
                 case Key.W:
+                    if(_currentDirection != Direction.Down)
                     _currentDirection = Direction.Up;
                     break;
                 case Key.A:
-                    _currentDirection = Direction.Left;
+                    if (_currentDirection != Direction.Right)
+                        _currentDirection = Direction.Left;
                     break;
                 case Key.S:
-                    _currentDirection = Direction.Down;
+                    if (_currentDirection != Direction.Up)
+                        _currentDirection = Direction.Down;
                     break;
                 case Key.D:
-                    _currentDirection = Direction.Right;
+                    if (_currentDirection != Direction.Left)
+                        _currentDirection = Direction.Right;
                     break;
             }
         }
