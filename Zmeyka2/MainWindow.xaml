@@ -17,9 +17,7 @@
                 <ColumnDefinition/>
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
-            <Button Grid.Column="0" Margin="1" Content="Start"/>
-            <Button Grid.Column="1" Margin="1" Content="Restart"/>
-            <Button Grid.Column="2" Margin="1" Content="Options"/>
+
         </Grid>
         <Canvas x:Name="Game" Grid.Row="1"/>
     </Grid>
